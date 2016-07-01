@@ -1,0 +1,50 @@
+# Ordner die Ausgelassen werden sollen
+RemoteSystemsTempFiles/
+.externalToolBuilders/
+.metadata/
+.recommenders/**
+.settings/
+bin/
+tmp/
+**.svn/
+**build/
+**classes/
+**/target/
+
+
+
+
+/*
+!.gitignore
+!Bildholer
+!Camera
+!mavenMirrorController
+!MirrorController
+!Tinker
+
+
+
+# Dateitypen die Ausgelassen werden sollen
+**.project
+.classpath
+*.class
+
+**.orig
+**.lnk
+**.log
+
+# Dateien im Wurzelverzeichnis auslassen
+/*.rar
+/*.zip
+/*.tar
+/*.tar.gz
+/*.ini
+
+#netbeans Empfehlungen
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+nbactions.xml
+.nb-gradle/
