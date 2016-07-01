@@ -16,6 +16,7 @@ tmp/
 
 /*
 !.gitignore
+!Heizung
 !Bildholer
 !Camera
 !mavenMirrorController
