@@ -22,8 +22,8 @@ tmp/
 !mavenMirrorController
 !MirrorController
 !Tinker
-
-
+!RaspPi
+!MirrorCompassMotors
 
 # Dateitypen die Ausgelassen werden sollen
 **.project

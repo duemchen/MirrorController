@@ -1,0 +1,34 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          Für welches Programm ist das Script?
+# Required-Start:    
+# Required-Stop:     
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Kurze Beschreibung
+# Description:       Längere Beschreibung
+### END INIT INFO
+
+
+ 
+# Actions
+case "$1" in
+    start)
+        # START
+	echo "startcamera.sh [start|stop]" >&2
+	cd "/home/root/NetBeansProjects/MirrorCompassMotors"
+	/usr/lib/jvm/jdk-7-oracle-armhf/bin/java -jar /home/root/NetBeansProjects/MirrorCompassMotors/dist/MirrorCompassMotors.jar  &
+        ;;
+    stop)
+        # STOP
+        processPID=`ps -ef | grep MirrorCompassMotors | grep java | grep -v grep | awk -F" " '{ print $2 }'`
+        echo $processPID 
+        kill $processPID
+
+        ;;
+    restart)
+        # RESTART
+        ;;
+esac
+ 
+exit 0
