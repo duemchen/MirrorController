@@ -22,7 +22,7 @@ public class Motor {
     }
 
     void stop() {
-        System.out.println("stop");
+        // System.out.println("stop");
         l.on();
         r.on();
         e.on();
@@ -30,14 +30,14 @@ public class Motor {
     }
 
     void left() {
-        System.out.println("left");
+        //  System.out.println("left");
         l.off();
         r.on();
         e.off();
     }
 
     void right() {
-        System.out.println("right");
+        // System.out.println("right");
         l.on();
         r.off();
         e.off();
@@ -80,7 +80,7 @@ public class Motor {
 
     void toEast() {
         left();
-        
+
     }
 
 }
@@ -88,7 +88,7 @@ public class Motor {
 /*
  stop vor umpolung
  pwm per pi4j
- sanftstart und stop, 
+ sanftstart und stop,
 
 
  */

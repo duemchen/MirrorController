@@ -5,10 +5,12 @@
  */
 package heizung;
 
+import de.horatio.common.HoraIni;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunction;
 
 /**
  *
@@ -22,6 +24,7 @@ class FernHeizung extends Thread {
     private final Heizung.TEMP tempVorlauf;
     private final Heizung.TEMP tempRuecklauf;
     private final Heizung.TEMP tempSpeicher;
+    private final Heizung.TEMP tempFernRL;
     //
     private double HYSTERESE = 0;//;1;
 
@@ -31,13 +34,18 @@ class FernHeizung extends Thread {
     private double INTERGALFAKTOR = 0.01;  //
     private double integralAnteil = 25;  //0 solange Abweichung ist, wird hier langsam gegengezogen
     private double lastTemp = 0;
-    private double DIFERENTIALFAKTOR = 10;//40;  //
+    private double DIFERENTIALFAKTOR = 10;//40;
+    //
+    private double tempAussen = 10;
+    private PolynomialFunction heizkurve = null;
 
-    public FernHeizung(Heizung.TEMP tempVorlauf, Heizung.TEMP tempRuecklauf, Heizung.TEMP tempSpeicher, Heizung.DA da) {
+    public FernHeizung(Heizung.TEMP tempVorlauf, Heizung.TEMP tempRuecklauf, Heizung.TEMP tempSpeicher, Heizung.TEMP tempStadtRuecklauf, Heizung.DA da) {
         this.tempVorlauf = tempVorlauf;
         this.tempRuecklauf = tempRuecklauf;
         this.tempSpeicher = tempSpeicher;
+        this.tempFernRL = tempStadtRuecklauf;
         this.da = da;
+
     }
 
     @Override
@@ -72,22 +80,47 @@ class FernHeizung extends Thread {
     void control() throws InterruptedException {
         int hh = Integer.parseInt(sdhh.format(new Date()));
         double soll = Constants.getVL();
-        // tageszeit
+        //jetzt berechnen aus akt. Aussentemp an Hand der Heizkurve
+        if (heizkurve == null) {
+            heizkurve = Heizkurve.getHeizkurve("heizkurve.ini");
+        }
+        if (heizkurve != null) {
+            soll = heizkurve.value(tempAussen); // tageszeit
+        }
         if ((hh < 5) || (hh > 22)) {
-            soll = Constants.getVLNacht();
+            //soll = Constants.getVLNacht();
+            soll = soll - Constants.getVLAbsenkung();
         }
 
         // Rücklaufbegrenzung. wenn keine Wärme gebraucht wird, fast aus.
-        if (tempRuecklauf.getTempLast().doubleValue() > 35) {
-            soll = Constants.getVLSommer();
+        if (tempRuecklauf.getTempLast().doubleValue() > 40) {
+            // System.out.println("rücklauf " + tempRuecklauf.getTempLast().doubleValue());
+            soll = soll - Constants.getVLAbsenkung();
+            // soll = Constants.getVLSommer();
         }
 
         da.off();
+        if (!HoraIni.LeseIniBool("Regler.ini", "Heizung", "aktiv", true, true)) {
+            Thread.sleep(30000);
+            return;
+        }
+        if ((hh < 5) || (hh > 22)) {
+            if (tempAussen > 15) {
+                Thread.sleep(5000);
+                return;
+            }
+        } else {
+            if (tempAussen > 18) {
+                Thread.sleep(5000);
+                return;
+            }
+        }
         if (tempVorlauf.getTempLast().doubleValue() <= 10) {
+            // sensor hat versagt
             Thread.sleep(5000);
             return;
         }
-
+        // System.out.println("SollTemp: " + soll + "   Aussen: " + tempAussen);
         // erst wenn die Speicher verbraucht sind. kleine hysterese einbauen
         boolean zuHeizen = tempSpeicher.getTempLast().doubleValue() < soll;
         //isSolar=!zuHeizen;
@@ -97,6 +130,17 @@ class FernHeizung extends Thread {
             //anheizen=true;
             Thread.sleep(60000);
             return;
+        }
+
+        if (tempFernRL.getTempLast().doubleValue() > 40) {
+            // Abschalten, wenn offenbar nix gebraucht
+            Thread.sleep(10000);
+            return;
+        }
+        if (tempFernRL.getTempLast().doubleValue() > tempVorlauf.getTempLast().doubleValue()) {
+            // Abschalten, wenn StadtRücklauf heisser als HeizungsVorlauf
+            // Thread.sleep(10000);
+            // return;
         }
 
         double ist = tempVorlauf.getTempLast().doubleValue();
@@ -126,7 +170,7 @@ class FernHeizung extends Thread {
 
         int on = (int) ((proz / 100) * PERIODE);
         int off = (int) (((100 - proz) / 100) * PERIODE);
-        //  System.out.println("vorlauf:" + tempVorlauf.getTempLast()+" C / "+ tempRuecklauf.getTempLast()+" C, gesamt:" + proz + ", p:" + prozAnteil + ", i:" + integralAnteil + ", d:" + diffAnteil + ", on:" + on + ",  off:" + off);
+        // System.out.println("vorlauf:" + tempVorlauf.getTempLast() + " C / " + tempRuecklauf.getTempLast() + " C, gesamt:" + proz + ", p:" + prozAnteil + ", i:" + integralAnteil + ", d:" + diffAnteil + ", on:" + on + ",  off:" + off);
         if (on > 500) { //Kontaktschonung
             da.on();
         }
@@ -135,6 +179,10 @@ class FernHeizung extends Thread {
             da.off();
         }
         Thread.sleep(off);
+    }
+
+    void setAussentemp(double temp) {
+        tempAussen = temp;
     }
 
 }

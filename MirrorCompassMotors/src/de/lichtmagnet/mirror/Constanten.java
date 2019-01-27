@@ -28,14 +28,21 @@ public class Constanten {
     private static final GpioController gpio = GpioFactory.getInstance();
 
     public static enum DA {
+//M-1
 
-        R1(RaspiPin.GPIO_00),
-        L1(RaspiPin.GPIO_01),
-        R2(RaspiPin.GPIO_02),
-        L2(RaspiPin.GPIO_03),
-        E1(RaspiPin.GPIO_04),
-        E2(RaspiPin.GPIO_05);
-
+        R1(RaspiPin.GPIO_00), //rot
+        L1(RaspiPin.GPIO_01), //gelb
+        E1(RaspiPin.GPIO_02), //grün
+        R2(RaspiPin.GPIO_03),//rot
+        L2(RaspiPin.GPIO_04),//gelb
+        E2(RaspiPin.GPIO_05); //grün
+//M-2
+//        R1(RaspiPin.GPIO_00),
+//        L1(RaspiPin.GPIO_01),
+//        R2(RaspiPin.GPIO_02),
+//        L2(RaspiPin.GPIO_03),
+//        E1(RaspiPin.GPIO_04),
+//        E2(RaspiPin.GPIO_05);
         private GpioPinDigitalOutput pin;
 
         private DA(Pin pin) {

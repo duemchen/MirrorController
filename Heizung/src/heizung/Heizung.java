@@ -36,6 +36,9 @@ public class Heizung {
     private SpeicherToWarmwasser s2ww;
     private FernHeizung fernHeiz;
     private SolarHeizung solarHeiz;
+    private int lastHour = -1;
+    private String MQTTLINK = "duemchen.feste-ip.net:56686";
+    private double aussenTemp;
 
     /**
      * iii
@@ -179,7 +182,12 @@ public class Heizung {
     }
 
     public Heizung() throws IOException, InterruptedException {
-        MqttTemperaturen.getInstance().sendHallo();
+
+        //
+        MQTTLINK = HoraIni.LeseIniString(datei, "MQTT", "LINK_PORT", MQTTLINK, true);
+        MQTTLINK = "tcp://" + MQTTLINK;
+        MqttTemperaturen.getInstance(MQTTLINK).sendHallo();
+        //
         initTemperatureSensoren();
         s2s = new SolarToSpeicher(TEMP.KOLL_VL, TEMP.SP1_OBEN, DA.SOLARHOT, DA.SOLARIMP);
         s2ww = new SpeicherToWarmwasser(TEMP.SP1_OBEN, TEMP.WARMWASSER, DA.WWPUMPE);
@@ -187,7 +195,7 @@ public class Heizung {
         s2ww.setName("speicher2Warmwasser");
         s2s.start();
         s2ww.start();
-        fernHeiz = new FernHeizung(TEMP.FERNHEIZ_VORLAUF, TEMP.FERNHEIZ_RUECKLAUF, TEMP.SP1_OBEN, DA.FERNWAERME);
+        fernHeiz = new FernHeizung(TEMP.FERNHEIZ_VORLAUF, TEMP.FERNHEIZ_RUECKLAUF, TEMP.SP1_OBEN, TEMP.FERN_STADT_RUECK, DA.FERNWAERME);
         fernHeiz.setName("fernHeizung");
         fernHeiz.start();
         solarHeiz = new SolarHeizung(TEMP.FERNHEIZ_VORLAUF, TEMP.FERNHEIZ_RUECKLAUF, TEMP.SP1_OBEN, DA.SOLARHEIZ_IMP, DA.SOLARHEIZ_HOTTER);
@@ -211,7 +219,7 @@ public class Heizung {
                 for (DA da : DA.values()) {
                     da.off();
                 }
-                MqttTemperaturen.getInstance().sendByebye();
+                MqttTemperaturen.getInstance(MQTTLINK).sendByebye();
                 System.out.println("TschAu.");
 
             }
@@ -247,7 +255,7 @@ public class Heizung {
             if (lastMinute != aktMinute) {
                 lastMinute = aktMinute;
                 try {
-                    MqttTemperaturen.getInstance().sendTemps();
+                    MqttTemperaturen.getInstance(MQTTLINK).sendTemps(aussenTemp);
 
                 } catch (Exception ex) {
                     Logger.getLogger(Heizung.class.getName()).log(Level.SEVERE, null, ex);
@@ -255,6 +263,24 @@ public class Heizung {
 
             }
             i++;
+            if (lastHour == cal.get(Calendar.HOUR_OF_DAY)) {
+                continue;
+            }
+            // wetterabfragen
+            try {
+
+                OpenWeather ow;
+                ow = new OpenWeather();
+                double lon = 12.89;
+                double lat = 53.09;
+                ow.setCoord(lon, lat);
+                double temp = ow.getTemp();
+                fernHeiz.setAussentemp(temp);
+                aussenTemp = temp;
+                lastHour = cal.get(Calendar.HOUR_OF_DAY);
+            } catch (Exception e) {
+                System.out.println(e);
+            }
 
         }
 

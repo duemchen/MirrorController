@@ -5,26 +5,23 @@
  */
 package heizung;
 
+import de.horatio.common.HoraIni;
+
 /**
  *
  * @author duemchen
  */
 public class Constants {
 
-    static private double sollVL = 45;
-    static private double sollVLNacht = 39;
-    static private double sollVLSommer = 35;
+    static private double sollVL = HoraIni.LeseIniInt("Regler.ini", "Temperaturen", "VL_Winter", 45, true);
+    static private double sollVLAbsenkung = HoraIni.LeseIniInt("Regler.ini", "Temperaturen", "Absenkung", 5, true);
 
     public static double getVL() {
         return sollVL;
     }
 
-    public static double getVLNacht() {
-        return sollVLNacht;
-    }
-
-    static double getVLSommer() {
-        return sollVLSommer;
+    static double getVLAbsenkung() {
+        return sollVLAbsenkung;
     }
 
 }

@@ -5,6 +5,8 @@
  */
 package de.lichtmagnet.mirror;
 
+import de.horatio.common.HoraFile;
+import de.horatio.common.HoraIni;
 import de.lichtmagnet.mirror.Constanten.DA;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -18,20 +20,27 @@ public class Mirror {
 
     //
     final static String datei = "mirror.ini";
+    String mac;
     JoyThread joy;
+    private String MQTTLINK = "duemchen.feste-ip.net:56686";
 
     /**
      * iii
      */
     public Mirror() throws IOException, InterruptedException, Exception {
-        System.out.println("Hi.");
+        System.out.println("ini: " + HoraFile.getCanonicalPath(datei));
+        MQTTLINK = HoraIni.LeseIniString(datei, "MQTT", "LINK", MQTTLINK, true);
+        MQTTLINK = "tcp://" + MQTTLINK;
+        this.mac = TestMac.getMacAddress(mac);
+        System.out.println("Mirror Mac: " + mac);
         Motor m1 = new Motor(DA.L1, DA.R1, DA.E1);
         Motor m2 = new Motor(DA.L2, DA.R2, DA.E2);
         //Empfänger für die Steuerbefehle
         joy = new JoyThread();
         joy.setName("joystick");
         joy.setMotors(m1, m2);
-        joy.setMQTTPath("joy");
+        joy.setMQTTPath(mac);
+        joy.setMqqtLink(MQTTLINK);
         joy.start();
         // Testlauf Motoren
         m1.toWest();
@@ -45,7 +54,8 @@ public class Mirror {
         Thread.sleep(2000);
         m2.stop();
         //
-        Compass c = new Compass("compass/2");
+        Compass c = new Compass(mac);
+        c.setMqttLink(MQTTLINK);
         c.start();
 //
         //
@@ -95,6 +105,7 @@ public class Mirror {
      */
     public static void main(String[] args) throws IOException, InterruptedException, Exception {
         System.out.println("Hi.");
+
         Mirror m = new Mirror();
 
     }

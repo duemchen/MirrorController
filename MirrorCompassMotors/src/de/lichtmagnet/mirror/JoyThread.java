@@ -22,12 +22,14 @@ class JoyThread extends Thread implements JoyCallback {
     private Motor mCompass;
     private Motor mHoehe;
     private String mqttPath;
+    private String MQTTLINK;
 
     @Override
     public void run() {
 
         while (true) {
             tr = new JoyReader(mqttPath);
+            tr.setMqttLink(MQTTLINK);
 
             tr.register(this);
             try {
@@ -62,12 +64,12 @@ class JoyThread extends Thread implements JoyCallback {
     @Override
     public void setMotion(MqttMessage message) {
         try {
-            System.out.println(message);
+            // System.out.println(message);
             byte[] bytes = message.getPayload();
             String sMsg = new String(bytes, StandardCharsets.UTF_8);
             JSONObject jo = new JSONObject(sMsg);
             int cmd = jo.getInt("cmd");
-            System.out.println(cmd);
+            // System.out.println(cmd);
             mCompass.stop();
             mHoehe.stop();
             switch (cmd) {
@@ -113,6 +115,10 @@ class JoyThread extends Thread implements JoyCallback {
 
     void setMQTTPath(String mqttPath) {
         this.mqttPath = mqttPath;
+    }
+
+    void setMqqtLink(String MQTTLINK) {
+        this.MQTTLINK = MQTTLINK;
     }
 
 }

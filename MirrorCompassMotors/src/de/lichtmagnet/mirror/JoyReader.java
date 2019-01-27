@@ -27,6 +27,7 @@ class JoyReader implements MqttCallback {
     private MqttClient client;
     private boolean connectionOK;
     private final String mqttPath;
+    private String MQTTLINK;
 
     JoyReader(String mqttPath) {
         this.mqttPath = mqttPath;
@@ -44,10 +45,10 @@ class JoyReader implements MqttCallback {
             SecureRandom random = new SecureRandom();
             String id = new BigInteger(60, random).toString(32);
             System.out.println("id=" + id);
-            client = new MqttClient("tcp://duemchen.ddns.net:1883", id, persistence);
+            client = new MqttClient(MQTTLINK, id, persistence);
             client.connect();
             client.setCallback(this);
-            client.subscribe("simago/" + mqttPath);
+            client.subscribe("simago/joy/" + mqttPath);
             connectionOK = true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -63,8 +64,8 @@ class JoyReader implements MqttCallback {
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        System.out.println("topic:" + topic);
-        System.out.println("msg:" + message);
+      //  System.out.println("topic:" + topic);
+        //  System.out.println("msg:" + message);
         callback.setMotion(message);
     }
 
@@ -77,6 +78,10 @@ class JoyReader implements MqttCallback {
 
         return connectionOK;
 
+    }
+
+    void setMqttLink(String MQTTLINK) {
+        this.MQTTLINK = MQTTLINK;
     }
 
 }

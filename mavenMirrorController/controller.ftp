@@ -1,0 +1,7 @@
+OPEN 192.168.10.50
+wolfgang
+olfi
+
+BINARY
+PUT target\mavenMirrorController-1.jar
+bye

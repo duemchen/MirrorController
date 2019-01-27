@@ -6,6 +6,8 @@
 package heizung;
 
 import de.horatio.common.HoraTime;
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.logging.Level;
@@ -13,6 +15,7 @@ import java.util.logging.Logger;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -24,11 +27,12 @@ class MqttTemperaturen {
 
     private MqttClient client;
     private static MqttTemperaturen instance = null;
+    private String MQTTLINK = "?";
 
-    public static MqttTemperaturen getInstance() {
+    public static MqttTemperaturen getInstance(String MQTTLINK) {
         if (instance == null) {
             try {
-                instance = new MqttTemperaturen();
+                instance = new MqttTemperaturen(MQTTLINK);
             } catch (MqttException ex) {
                 Logger.getLogger(MqttTemperaturen.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -36,35 +40,38 @@ class MqttTemperaturen {
         return instance;
     }
 
-    public MqttTemperaturen() throws MqttException {
-        client = new MqttClient("tcp://duemchen.ddns.net:1883", "publishTemperatures");
-
+    public MqttTemperaturen(String MQTTLINK) throws MqttException {
+        MemoryPersistence persistence = new MemoryPersistence();
+        SecureRandom random = new SecureRandom();
+        String id = new BigInteger(60, random).toString(32);
+        System.out.println("id=" + id);
+        client = new MqttClient(MQTTLINK, id, persistence);
+        this.MQTTLINK = MQTTLINK;
     }
 
-    void sendTemps() throws JSONException {
+    void sendTemps(double aussenTemp) throws JSONException {
         //TODO Format json
-      
+
         JSONObject jo = new JSONObject();
         JSONObject temperaturen = new JSONObject();
-        JSONObject relais= new JSONObject();
+        JSONObject relais = new JSONObject();
         for (Heizung.TEMP temp : Heizung.TEMP.values()) {
             //content += temp.name() + "=" + temp.getTempLast() + ", ";
-           temperaturen.put(temp.name(),temp.getTempLast());
+            temperaturen.put(temp.name(), temp.getTempLast());
         }
-        
-        for (Heizung.DA da: Heizung.DA.values()){
-            relais.put(da.name(),da.isOn());            
+        temperaturen.put("AUSSEN", aussenTemp);
+
+        for (Heizung.DA da : Heizung.DA.values()) {
+            relais.put(da.name(), da.isOn());
         }
         jo.put("time", HoraTime.dateToStr(new Date()));
         jo.put("temperatures", temperaturen);
         jo.put("relais", relais);
-        
-        
 
         MqttMessage message = new MqttMessage();
         Runtime rt = Runtime.getRuntime();
 
-       String content = jo.toString();
+        String content = jo.toString();
         message.setPayload(content.getBytes());
         try {
             if (!client.isConnected()) {
@@ -114,6 +121,10 @@ class MqttTemperaturen {
         Runtime rt = Runtime.getRuntime();
         return new DecimalFormat("###,###.###").format((rt.totalMemory() - rt.freeMemory()));
 
+    }
+
+    void setMqttLink(String MQTTLINK) {
+        this.MQTTLINK = MQTTLINK;
     }
 
 }

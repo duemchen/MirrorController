@@ -1,0 +1,8 @@
+start
+id=1npk36na9b9c
+stop
+Beende Bildholer....dostop
+....dostop break
+restart
+dostop sleep
+dostop end.

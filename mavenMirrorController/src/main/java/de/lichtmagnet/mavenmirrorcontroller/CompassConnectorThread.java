@@ -5,71 +5,88 @@
  */
 package de.lichtmagnet.mavenmirrorcontroller;
 
+import org.apache.log4j.Logger;
+import org.eclipse.paho.client.mqttv3.MqttException;
+
 /**
  *
  * @author duemchen
  */
-class CompassConnectorThread extends Thread implements CompassCallback{
+class CompassConnectorThread extends Thread implements CompassCallback {
+
+    public static Logger log = Logger.getLogger("CompassConnectorThread");
 
     CompassCallback callback;
     private CompassReader tr;
+    private boolean stop;
+    private String MQTTLINK;
 
-    
     public CompassConnectorThread() {
     }
 
-    
     void register(CompassCallback x) {
         callback = x;
-        x.setPosition("waiting for Compass...");
+        callback.setPosition("info", "waiting for Compass");
 
     }
 
-    
     @Override
-	public void run() {
+    public void run() {
+        stop = false;
+        while (!stop) {
+            tr = new CompassReader();
+            tr.setMQTTLink(MQTTLINK);
+            tr.register(this);
+            try {
+                tr.connectToMQTT();
 
-		while (true) {
-			tr = new CompassReader();
+            } catch (InterruptedException e1) {
+                stop = true;
 
-			tr.register(this);
-			try {
-				tr.connectToMQTT();
-                                
-			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			while (tr.isConnected()) {
-				try {
-					Thread.sleep(2000);
+            }
+            while (tr.isConnected()) {
+                if (stop) {
+                    break;
+                }
+                try {
+                    Thread.sleep(2000);
 
-				} catch (InterruptedException e) {
+                } catch (InterruptedException e) {
+                    stop = true;
 
-					e.printStackTrace();
-				}
-			}
-			System.out.println("restart");
-			
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e) {
+                }
+            }
+            log.error("restart");
 
-				e.printStackTrace();
-			}
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                stop = true;
 
-		}
+            }
 
-	}
+        }
+        //beenden
+        try {
+            tr.client.disconnect(2000);
+        } catch (MqttException ex) {
 
-    @Override
-    public void setPosition(String s) {
-        callback.setPosition(s);
+        }
+        try {
+            tr.client.close();
+        } catch (MqttException ex) {
+
+        }
+
     }
 
-   
-  
-    
-    
+    @Override
+    public void setPosition(String path, String message) {
+        callback.setPosition(path, message);
+    }
+
+    void setMQTTLink(String MQTTLINK) {
+        this.MQTTLINK = MQTTLINK;
+    }
 
 }

@@ -21,7 +21,6 @@ class SpeicherToWarmwasser extends Thread {
     private double SP_MIN = 53; // mindesttemp
     private double WW_SOLL = 50; // sollwert ww
     private double HYSTERESE = 1;
-    
 
     public SpeicherToWarmwasser(Heizung.TEMP tempSpeicher, Heizung.TEMP tempWarmwasser, Heizung.DA da) {
         this.tempSpeicher = tempSpeicher;
@@ -53,9 +52,12 @@ class SpeicherToWarmwasser extends Thread {
      *
      */
     void control() throws InterruptedException {
-       // System.out.println("s2ww sp:" + tempSpeicher.getTempLast() + ", ww:" + tempWarmwasser.getTempLast() + " ");
+        // System.out.println("s2ww sp:" + tempSpeicher.getTempLast() + ", ww:" + tempWarmwasser.getTempLast() + " ");
         boolean heizen = false;
-        if (tempSpeicher.getTempLast().doubleValue() >= SP_MIN) {
+        //if (tempSpeicher.getTempLast().doubleValue() >= SP_MIN) {
+        // speicher soll immer mindestens 3 grad heisser als das WW sein
+        if (tempSpeicher.getTempLast().doubleValue() >= 5 + tempWarmwasser.getTempLast().doubleValue()) {
+
             if (tempWarmwasser.getTempLast().doubleValue() < WW_SOLL) {
 
                 heizen = true;
@@ -68,7 +70,7 @@ class SpeicherToWarmwasser extends Thread {
                 if (delta < HYSTERESE) {
                     // noch sehr nah an soll
                     heizen = false;
-                   // System.out.println("s2ww delta:" + delta + ", Heizen verzögert ");
+                    // System.out.println("s2ww delta:" + delta + ", Heizen verzögert ");
                 }
             }
         }

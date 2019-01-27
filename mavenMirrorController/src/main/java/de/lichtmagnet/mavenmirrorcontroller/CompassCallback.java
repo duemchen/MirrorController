@@ -10,5 +10,6 @@ package de.lichtmagnet.mavenmirrorcontroller;
  * @author duemchen
  */
 interface CompassCallback {
- void setPosition(String s)   ;
+
+    void setPosition(String path, String message);
 }

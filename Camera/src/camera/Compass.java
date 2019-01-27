@@ -8,10 +8,14 @@ package camera;
 import com.pi4j.io.i2c.I2CBus;
 import com.pi4j.io.i2c.I2CDevice;
 import com.pi4j.io.i2c.I2CFactory;
+import java.math.BigInteger;
+import java.net.SocketException;
+import java.security.SecureRandom;
 import org.apache.log4j.Logger;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -34,6 +38,7 @@ public class Compass extends Thread {
 
     private static final Logger log = Logger.getLogger(Compass.class);
     private MqttClient client;
+    private String mac;
 
     void sendCommand(int dir, int pitch, int roll) {
         try {
@@ -46,12 +51,17 @@ public class Compass extends Thread {
             message.setPayload(jo.toString().getBytes());
             try {
                 if (client == null) {
-                    client = new MqttClient("tcp://duemchen.ddns.net:1883", "compass");
+                    MemoryPersistence persistence = new MemoryPersistence();
+                    SecureRandom random = new SecureRandom();
+                    String id = new BigInteger(60, random).toString(32);
+                    System.out.println("compassid=" + id);
+                    client = new MqttClient("tcp://duemchen.ddns.net:1883", id, persistence);
                 }
                 if (!client.isConnected()) {
                     client.connect();
                 }
                 client.publish("simago/compass", message);
+//                client.publish("simago/compass/" + mac, message);
 
             } catch (MqttException ex) {
                 log.error(ex);
@@ -72,8 +82,11 @@ public class Compass extends Thread {
         return result;
     }
 
-    public void Compass() {
+    public void Compass() throws SocketException {
         System.out.println("start compass.");
+        this.mac = TestMac.getMacAddress("wlan");
+        System.out.println("mac: " + mac);
+        log.info(mac);
     }
 
     @Override
@@ -94,7 +107,7 @@ public class Compass extends Thread {
                     int roll = toGrad(device.read(5));
 
                     //System.out.println("   dir:" + dir + "  p:" + pitch + "   r:" + roll);
-                    sendCommand(dir,pitch,roll);
+                    sendCommand(dir, pitch, roll);
                     Thread.sleep(2000);
                 } catch (Exception e) {
                     Thread.sleep(2000);

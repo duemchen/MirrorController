@@ -5,6 +5,9 @@
  */
 package de.lichtmagnet.mavenmirrorcontroller;
 
+import java.math.BigInteger;
+import java.security.SecureRandom;
+import org.apache.log4j.Logger;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -18,49 +21,54 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
  */
 class CompassReader implements MqttCallback {
 
+    public static Logger log = Logger.getLogger("CompassReader");
     CompassCallback callback;
-    private MqttClient client;
+    MqttClient client;
     private boolean connectionOK;
+    private String MQTTLINK;
 
     public CompassReader() {
     }
 
     void register(CompassCallback x) {
         callback = x;
-        callback.setPosition("registriert.");
+        callback.setPosition("info", "registriert.");
 
     }
 
     @Override
     public void connectionLost(Throwable thrwbl) {
         connectionOK = false;
-        System.out.println("clost:" + thrwbl);
+        log.error("clost:" + thrwbl);
     }
 
     @Override
-    public void messageArrived(String string, MqttMessage mm) throws Exception {
-        if (mm == null) {
-            System.out.println("cMessage NULL");
-        } else {
+    public void messageArrived(String path, MqttMessage mm) throws Exception {
+        if (mm != null) {
             byte[] b = mm.getPayload();
-            callback.setPosition(new String(b));
+            callback.setPosition(path, new String(b));
         }
-
     }
 
     @Override
     public void deliveryComplete(IMqttDeliveryToken imdt) {
-        System.out.println("c delivery");
+        log.info("deliveryComplete");
     }
 
     public void connectToMQTT() throws InterruptedException {
         Thread.sleep(1000);
         try {
             MemoryPersistence persistence = new MemoryPersistence();
-            client = new MqttClient("tcp://duemchen.ddns.net:1883", "randomize", persistence);
+            SecureRandom random = new SecureRandom();
+            String id = new BigInteger(60, random).toString(32);
+            client = new MqttClient(MQTTLINK, "id" + id, persistence);
             client.connect();
             client.setCallback(this);
-            client.subscribe("simago/compass");
+            // client.subscribe("simago/compass");
+            //client.subscribe("simago/compass/74-DA-38-3E-E8-3C");
+            client.subscribe("simago/compass/#");
+            client.subscribe("simago/joy/#"); // Kommandos zum Spiegel: die eigenen und die vom Handy unterscheiden!
+            client.subscribe("simago/wind/#");
             connectionOK = true;
         } catch (MqttException e) {
             e.printStackTrace();
@@ -69,5 +77,9 @@ class CompassReader implements MqttCallback {
 
     boolean isConnected() {
         return connectionOK;
+    }
+
+    void setMQTTLink(String MQTTLINK) {
+        this.MQTTLINK = MQTTLINK;
     }
 }

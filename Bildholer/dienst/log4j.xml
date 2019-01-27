@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+  <appender name="Veranda" class="org.apache.log4j.DailyRollingFileAppender">
+    <param name="datePattern" value="yyyy-MM-dd'.log'" />
+    <param name="file" value="log/veranda." />
+    <param name="Append" value="true" />
+    <layout class="org.apache.log4j.PatternLayout">
+      <param name="ConversionPattern" value="%-5p %m%n" />
+    </layout>
+  </appender>
+  
+  <appender name="Heizung" class="org.apache.log4j.DailyRollingFileAppender">
+    <param name="datePattern" value="yyyy-MM-dd'.log'" />
+    <param name="file" value="log/heizung." />
+    <param name="Append" value="true" />
+    <layout class="org.apache.log4j.PatternLayout">
+      <param name="ConversionPattern" value="%-5p %m%n" />
+    </layout>
+  </appender>
+  
+  <appender name="Elektro" class="org.apache.log4j.DailyRollingFileAppender">
+    <param name="datePattern" value="yyyy-MM-dd'.log'" />
+    <param name="file" value="log/elektro." />
+    <param name="Append" value="true" />
+    <layout class="org.apache.log4j.PatternLayout">
+      <param name="ConversionPattern" value="%-5p %m%n" />
+    </layout>
+  </appender>
+  
+  
+  
+   <logger name="HeizungLogger" additivity="false">
+    <level value="INFO" />
+    <appender-ref ref="Heizung" />
+  </logger>
+  <logger name="ElektroLogger" additivity="false">
+    <level value="INFO" />
+    <appender-ref ref="Elektro" />
+  </logger>
+
+  
+  <root>
+    <priority value="INFO" />
+    <appender-ref ref="Veranda" />
+  </root>
+
+</log4j:configuration>

@@ -8,10 +8,13 @@ package de.lichtmagnet.mirror;
 import com.pi4j.io.i2c.I2CBus;
 import com.pi4j.io.i2c.I2CDevice;
 import com.pi4j.io.i2c.I2CFactory;
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import org.apache.log4j.Logger;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -35,6 +38,7 @@ public class Compass extends Thread {
     private static final Logger log = Logger.getLogger(Compass.class);
     private MqttClient client;
     private String mqttPath;
+    private String MQTTLINK;
 
     Compass(String mqttPath) {
         this.mqttPath = mqttPath;
@@ -44,19 +48,26 @@ public class Compass extends Thread {
     void sendCommand(int dir, int pitch, int roll) {
         try {
             JSONObject jo = new JSONObject();
+            jo.put("mirrorid", "2");
             jo.put("dir", dir);
             jo.put("pitch", pitch);
             jo.put("roll", roll);
+            // System.out.println("to: " + "simago/compass/" + mqttPath + ", send: " + jo);
             MqttMessage message = new MqttMessage();
             message.setPayload(jo.toString().getBytes());
             try {
                 if (client == null) {
-                    client = new MqttClient("tcp://duemchen.ddns.net:1883", "compass");
+                    MemoryPersistence persistence = new MemoryPersistence();
+                    SecureRandom random = new SecureRandom();
+                    String id = new BigInteger(60, random).toString(32);
+                    System.out.println("id=" + id);
+
+                    client = new MqttClient(MQTTLINK, id, persistence);
                 }
                 if (!client.isConnected()) {
                     client.connect();
                 }
-                client.publish("simago/" + mqttPath, message);
+                client.publish("simago/compass/" + mqttPath, message);
 
             } catch (MqttException ex) {
                 log.error(ex);
@@ -98,7 +109,6 @@ public class Compass extends Thread {
                     int pitch = toGrad(device.read(4));
                     int roll = toGrad(device.read(5));
 
-                    //System.out.println("   dir:" + dir + "  p:" + pitch + "   r:" + roll);
                     sendCommand(dir, pitch, roll);
                     Thread.sleep(2000);
                 } catch (Exception e) {
@@ -111,6 +121,10 @@ public class Compass extends Thread {
         }
         System.out.println("Compass run sagt Tschüss");
 
+    }
+
+    void setMqttLink(String MQTTLINK) {
+        this.MQTTLINK = MQTTLINK;
     }
 
 }
