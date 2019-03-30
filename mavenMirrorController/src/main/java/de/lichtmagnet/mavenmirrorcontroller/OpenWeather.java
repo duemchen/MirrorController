@@ -331,8 +331,8 @@ public class OpenWeather {
         double lon = 12.89;
         double lat = 53.09;
         ow.setCoord(lon, lat);
-        // System.out.println("Windgeschwindigkeit: " + ow.getWind());
-        //System.out.println("Temperatur: " + ow.getTemp());
+        System.out.println("Windgeschwindigkeit: " + ow.getWind());
+        System.out.println("Temperatur: " + ow.getTemp());
 
     }
 

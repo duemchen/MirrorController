@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.TimeZone;
 import net.e175.klaus.solarpositioning.AzimuthZenithAngle;
 import net.e175.klaus.solarpositioning.Grena3;
@@ -44,6 +45,8 @@ public class Regler {
     private static DecimalFormat df = new DecimalFormat("#.00");
     public static final String INIDATEI = "MirrorControl.ini";
     private static String state = "unbekannt";
+    private static HashMap<String, Integer> lastRichtungH = new HashMap<String, Integer>();
+    private static HashMap<String, Integer> lastRichtungV = new HashMap<String, Integer>();
 
     static double getWindMax() {
         return WINDMAX;
@@ -119,6 +122,56 @@ public class Regler {
 
     private boolean isCloudly() {
         return cloud > cloudmax;
+    }
+
+    /**
+     *
+     * @param path
+     * @param x
+     * @param x0
+     * @return je Spiegel die letzte Richtung merken
+     */
+    private boolean isRichtungsWechsel(HashMap<String, Integer> lastRichtung, String path, double x, double x0) {
+        boolean result = false;
+        int alt = getLastRichtung(lastRichtung, path);
+        if (alt != 0) { // bei vorher 0 sowieso loslegen
+            int neu = getRichtung(x, x0);
+            result = (neu != alt);
+        }
+        return result;
+    }
+
+    /**
+     *
+     * @param x
+     * @param x0
+     * @return 0, -1,1
+     */
+    private int getRichtung(double x, double x0) {
+        x -= x0;
+        x = Math.round(x);
+        x = Math.max(x, -1);
+        x = Math.min(x, 1);
+        int result = (int) x;
+        return result;
+    }
+
+    private void setRichtung(HashMap<String, Integer> lastRichtung, String path, double y, double y0) {
+        int r = getRichtung(y, y0);
+        setLastRichtung(lastRichtung, path, r);
+    }
+
+    private void setLastRichtung(HashMap<String, Integer> lastRichtung, String path, int r) {
+        lastRichtung.put(path, r);
+    }
+
+    private int getLastRichtung(HashMap<String, Integer> lastRichtung, String path) {
+        int result = 0;
+        Integer r = lastRichtung.get(path);
+        if (r != null) {
+            result = r;
+        }
+        return result;
     }
 
     // hoch links rechts runter 0,1,2,3
@@ -241,24 +294,41 @@ public class Regler {
         horizontal = !horizontal;
         if (horizontal) {
             //x == dir
-            if (Math.abs(pIst.getX() - pSoll.getX()) > 1) {
+            
+            // damit nicht hin und her geregelt wird,
+            // Richtung des letzten Kommandos merken. -1 0 1
+            int delta = 0;
+            if (isRichtungsWechsel(lastRichtungH, path, pIst.getX(), pSoll.getX())) {
+                delta = 1;
+            }
+            // bei Umkehrung erst bei Unterschied > 1 auslösen
+            // sonst bei > 0 auslösen. 
+            // So ein schwingen vermeiden, aber bis genau an den punkt bzw. kurz darüber fahren
+            if (Math.abs(pIst.getX() - pSoll.getX()) > delta) {
                 if (pIst.getX() > pSoll.getX()) {
                     setCommand(CMD.LINKS);
                 } else {
                     setCommand(CMD.RECHTS);
                 }
+                setRichtung(lastRichtungH, path, pIst.getX(), pSoll.getX());
             } else {
                 log.info("Dir  ok");
             }
         } else // y == pitch
         {
-            if (Math.abs(pIst.getY() - pSoll.getY()) > 1) {
+          
+            int delta = 0;
+            if (isRichtungsWechsel(lastRichtungV, path, pIst.getY(), pSoll.getY())) {
+               
+                delta = 1;
+            }
+            if (Math.abs(pIst.getY() - pSoll.getY()) > delta) {
                 if (pIst.getY() > pSoll.getY()) {
                     setCommand(CMD.RUNTER);
                 } else {
-
                     setCommand(CMD.HOCH);
                 }
+                setRichtung(lastRichtungV, path, pIst.getY(), pSoll.getY());
             } else {
                 log.info("Höhe ok");
             }
@@ -329,7 +399,7 @@ public class Regler {
     }
 
     private void setCommand(CMD cmd) {
-        this.cmd = cmd;
+        this.cmd = cmd;        
     }
 
     private ArrayList<JSONObject> loadListe(String listePoints) throws FileNotFoundException, IOException {
@@ -371,25 +441,25 @@ public class Regler {
         Collections.sort(result,
                 new Comparator<JSONObject>() {
 
-                    @Override
-                    public int compare(JSONObject a, JSONObject b
-                    ) {
+            @Override
+            public int compare(JSONObject a, JSONObject b
+            ) {
 
-                        String wert1;
-                        String wert2;
+                String wert1;
+                String wert2;
 
-                        //try {
-                        wert1 = (String) a.get("time");
-                        wert1 = wert1.substring(11);
-                        wert2 = (String) b.get("time");
-                        wert2 = wert2.substring(11);
-                        return wert1.compareTo(wert2);
+                //try {
+                wert1 = (String) a.get("time");
+                wert1 = wert1.substring(11);
+                wert2 = (String) b.get("time");
+                wert2 = wert2.substring(11);
+                return wert1.compareTo(wert2);
 
-                        //} catch (JSONException ex) {                }
-                        // return 0;
-                    }
+                //} catch (JSONException ex) {                }
+                // return 0;
+            }
 
-                }
+        }
         );
 
         return result;
@@ -430,13 +500,13 @@ public class Regler {
     }
 
     private java.awt.Point calculateDir(Date date, Messpunkt mp1, Messpunkt mp2) {
-        //Stahlensatz
-        int secGesamt = mp2.getTageszeit() - mp1.getTageszeit(); // zeitdiff
-        int secTeil = Messpunkt.dateToTagesZeit(date) - mp1.getTageszeit();
+        //Stahlensatz. Genauigkeit erhöht per double. vor int dann round // Dümchen 17.02.2019
+        double secGesamt = mp2.getTageszeit() - mp1.getTageszeit(); // zeitdiff
+        double secTeil = Messpunkt.dateToTagesZeit(date) - mp1.getTageszeit();
 
-        int dirdiffGesamt = mp2.getDir() - mp1.getDir(); // dir diff
+        double dirdiffGesamt = mp2.getDir() - mp1.getDir(); // dir diff
 
-        int heigthDiffGesamt = mp2.getHeigth() - mp1.getHeigth(); // dir diff
+        double heigthDiffGesamt = mp2.getHeigth() - mp1.getHeigth(); // dir diff
         //
         if (secGesamt == 0) {
             java.awt.Point result = new java.awt.Point(mp1.getDir(), mp1.getHeigth());
@@ -444,13 +514,13 @@ public class Regler {
         }
 
         //
-        int delta = ((dirdiffGesamt) * secTeil) / secGesamt;
-        int dir = mp1.getDir() + delta;
+        double delta = ((dirdiffGesamt) * secTeil) / secGesamt;
+        double dir = mp1.getDir() + delta;
         //
         delta = ((heigthDiffGesamt) * secTeil) / secGesamt;
-        int heigth = mp1.getHeigth() + delta;
+        double heigth = mp1.getHeigth() + delta;
         //
-        java.awt.Point result = new java.awt.Point(dir, heigth);
+        java.awt.Point result = new java.awt.Point((int)Math.round(dir), (int)Math.round(heigth));
         return result;
 
     }

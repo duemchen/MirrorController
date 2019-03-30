@@ -144,8 +144,9 @@ public class ReglerStart implements CompassCallback {
                 path = path.replaceFirst("compass", "joy");
                 //client.publish("simago/joy", message);
                 client.publish(path, message);
+                
+                //S ystem.out.println("sendCommand " + path + ":" + cmd);
                 log.info("sendCommand " + path + ":" + cmd);
-
             } catch (MqttException ex) {
 
             }
