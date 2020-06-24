@@ -140,7 +140,7 @@ public class WebCamRequest {
      */
     public static void main(String[] args) throws IOException, MqttException, InterruptedException {
         DOMConfigurator.configureAndWatch(LOG4J, 2 * 1000);
-        WebCamRequest wc = new WebCamRequest();
+       WebCamRequest wc = new WebCamRequest(); 
         while (true) {
             Thread.sleep(5000);
             wc.getWind();

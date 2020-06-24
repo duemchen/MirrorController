@@ -5,6 +5,7 @@
  */
 package heizung;
 
+import com.pi4j.io.gpio.PinState;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -77,6 +78,7 @@ class SolarHeizung extends Thread {
         if ((sp - rl) > MINDEST_DELTA_TEMP) {
             // heizungsunterstützung. Heizen. Regeln.
             double ist = tempVL.getTempLast().doubleValue();
+            SOLL_TEMP = Heizkurve.getSoll();
             double delta = SOLL_TEMP - ist;
             boolean heizen = delta > 0;
             if (heizen) {
@@ -101,7 +103,8 @@ class SolarHeizung extends Thread {
 
         int on = (int) ((proz / 100) * PERIODE);
         int off = (int) (((100 - proz) / 100) * PERIODE);
-//        System.out.println("proz:" + proz + " , vL:" + tempVL.getTempLast() + ", rL:" + tempRL.getTempLast() + ", sp:" + tempSP.getTempLast());
+        String state = this.hotter.getPin().getState().getName();
+        System.out.println(state+ ", proz:" + proz + " , vL:" + tempVL.getTempLast() + ", rL:" + tempRL.getTempLast() + ", sp:" + tempSP.getTempLast()+", soll:"+SOLL_TEMP);
         if (on > 500) { //Kontaktschonung
             this.impuls.on();
         }

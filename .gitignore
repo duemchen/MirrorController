@@ -31,6 +31,7 @@ tmp/
 !Neuro*
 !neuro!
 !pictures
+!MQTTSwitch
 
 
 # Dateitypen die Ausgelassen werden sollen
@@ -57,3 +58,4 @@ dist/
 nbdist/
 nbactions.xml
 .nb-gradle/
+/Heizung/MQTTSwitch/nbproject/private/

@@ -98,6 +98,7 @@ class FernHeizung extends Thread {
             soll = soll - Constants.getVLAbsenkung();
             // soll = Constants.getVLSommer();
         }
+        Heizkurve.setSoll(soll);
 
         da.off();
         if (!HoraIni.LeseIniBool("Regler.ini", "Heizung", "aktiv", true, true)) {

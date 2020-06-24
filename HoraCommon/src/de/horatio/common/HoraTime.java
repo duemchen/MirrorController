@@ -232,7 +232,7 @@ public class HoraTime {
   }
   /**
    * Diese Funktion wandelt den Uhrzeiteintrag der Datenbank in HH:MM.
-   * Kann auch 24:00 und grösser sein!!
+   * K auch 24:00 und grösser sein!!
    * Beispiel:
    * 0.25 -->  6:00
    * 0.5  --> 12:00

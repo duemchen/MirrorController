@@ -7,7 +7,10 @@ package heizung;
 
 import de.horatio.common.HoraFile;
 import de.horatio.common.HoraIni;
+import de.horatio.common.HoraTime;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,6 +27,8 @@ import org.json.JSONObject;
  * @author duemchen
  */
 public class Heizkurve {
+
+    private static double sollAkt =45;
 
     public static PolynomialFunction getPolynomialFit(List<Point> pList) {
         PolynomialFunction result = null;
@@ -70,7 +75,8 @@ public class Heizkurve {
             String standard = "[{'x':20.0,'y':20.0},{'x':10,'y':35},{'x':0.0,'y':55}]";
             String s = HoraIni.LeseIniString(inifile, "Einstellung", "param", standard, true);
             JSONArray ja = new JSONArray(s);
-
+            System.out.println(HoraTime.dateToStr(new Date()) + "-----------------------------------------------------------------------");
+            System.out.println();
             System.out.println(ja);
             List<Point> list = new ArrayList<Point>();
             for (int i = 0;
@@ -87,8 +93,21 @@ public class Heizkurve {
                 for (int i = 0; i <= 20; i++) {
                     System.out.println("x: " + i + ",  y:" + result.value(i));
                 }
-                double i = 10.56;
-                System.out.println("x: " + i + ",  y:" + result.value(i));
+                System.out.println("");
+                double aussen = 10.00;
+                // wetterabfragen
+                try {
+                    OpenWeather ow;
+                    ow = new OpenWeather();
+                    double lon = 12.89;
+                    double lat = 53.09;
+                    ow.setCoord(lon, lat);
+                    aussen = ow.getTemp();
+                    System.out.println("aktuelle Aussentemeratur gesetzt.");
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
+                System.out.println("x: " + aussen + ",  y:" + result.value(aussen));
             } else {
                 System.out.println("Fehler. Mindestens 3 Eichpunkte nötig.");
                 System.out.println("param: " + s);
@@ -105,6 +124,14 @@ public class Heizkurve {
         PolynomialFunction f = getHeizkurve("heizkurve.ini");
         System.out.println(f.value(10));
         System.out.println(f.value(0));
+    }
+
+    static void setSoll(double soll) {
+       sollAkt=soll;
+    }
+    
+     static double getSoll() {
+       return sollAkt;
     }
 
 }
