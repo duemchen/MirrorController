@@ -43,7 +43,7 @@ public class MQTTSwitch implements MqttCallback {
     private String MQTTLINK = "duemchen.feste-ip.net:56686";
 
     public MQTTSwitch() {
-       // DOMConfigurator.configureAndWatch("log4j.xml", 5 * 1000);
+        // DOMConfigurator.configureAndWatch("log4j.xml", 5 * 1000);
     }
 
     public void register(SwitchCallback callback) {
@@ -76,6 +76,9 @@ public class MQTTSwitch implements MqttCallback {
             // http://mosquitto.org/man/mqtt-7.html  + nur die macs, # auch die root
             connectionOK = true;
             System.out.println("connected.");
+            MqttMessage echo = new MqttMessage(("connected at " + HoraTime.dateOnlyToStr(new Date(), "HH:mm:ss, EE dd.MM.yy")).getBytes());
+            client.publish("433/server", echo);
+
         } catch (MqttException e) {
             e.printStackTrace();
         }
@@ -97,7 +100,7 @@ public class MQTTSwitch implements MqttCallback {
                 String s = new String(bb);
                 int i = Integer.parseInt(s);
                 System.out.println("433: " + i);
-                String sd = "" + HoraTime.dateOnlyToStr(new Date(),"dd.MM.yyyy HH:mm:ss.SSS");
+                String sd = "" + HoraTime.dateOnlyToStr(new Date(), "dd.MM.yyyy HH:mm:ss.SSS");
                 MqttMessage echo;
                 switch (i) {
                     case 9803110:
@@ -116,15 +119,15 @@ public class MQTTSwitch implements MqttCallback {
                         echo = new MqttMessage(sd.getBytes());
                         client.publish("433/unten", echo);
                         break;
-                        
+
                     default:
                         //legt die Zahl einfach an.
                         echo = new MqttMessage(sd.getBytes());
-                        client.publish("433/"+i, echo);
+                        client.publish("433/unknown/" + i, echo);
 
                 }
 
-               // logHeizung.info("" + message);
+                // logHeizung.info("" + message);
             } catch (Exception e) {
                 //System.out.println(e);
             }
@@ -134,7 +137,7 @@ public class MQTTSwitch implements MqttCallback {
     @Override
     public void deliveryComplete(IMqttDeliveryToken token
     ) {
-        System.out.println("delivery");
+        //System.out.println("delivery complete");
     }
 
     public String getLastMessage() {
