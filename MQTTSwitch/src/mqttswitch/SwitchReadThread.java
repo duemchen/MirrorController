@@ -23,7 +23,7 @@ public class SwitchReadThread extends Thread implements SwitchCallback {
 
     private static SwitchReadThread instance;
     private MQTTSwitch tr;
-    private Double temeratur;
+    private Double temperatur;
     private String time;
     private boolean stop;
 
@@ -100,7 +100,7 @@ public class SwitchReadThread extends Thread implements SwitchCallback {
 
     public String getTemperatur() {
 
-        return "" + temeratur;
+        return "" + temperatur;
     }
 
     public String getTimeStr() {

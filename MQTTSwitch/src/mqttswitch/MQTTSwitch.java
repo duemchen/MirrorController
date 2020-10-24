@@ -31,7 +31,7 @@ public class MQTTSwitch implements MqttCallback {
      *
      * @author duemchen
      */
-//    private static Logger logHeizung = Logger.getLogger("HeizungLogger");
+    private static Logger log = Logger.getLogger("MQTTSwitchLogger");
     private static boolean stop;
 
     MqttAsyncClient client;
@@ -43,7 +43,7 @@ public class MQTTSwitch implements MqttCallback {
     private String MQTTLINK = "duemchen.feste-ip.net:56686";
 
     public MQTTSwitch() {
-        // DOMConfigurator.configureAndWatch("log4j.xml", 5 * 1000);
+        DOMConfigurator.configureAndWatch("log4j.xml", 5 * 1000);
     }
 
     public void register(SwitchCallback callback) {
@@ -52,7 +52,7 @@ public class MQTTSwitch implements MqttCallback {
     }
 
     public void connectToMQTT() throws InterruptedException {
-        Thread.sleep(1000);
+        Thread.sleep(3000);
         try {
             //
             MQTTLINK = HoraIni.LeseIniString(INI, "MQTT", "LINK_PORT", MQTTLINK, true);
@@ -62,12 +62,13 @@ public class MQTTSwitch implements MqttCallback {
             // jeder client muss eine zufallsid generieren, um stress zu vermeiden
             SecureRandom random = new SecureRandom();
             String id = new BigInteger(60, random).toString(32);
+            System.out.println();
             System.out.println("id=" + id);
             client = new MqttAsyncClient(MQTTLINK, id, persistence);
             client.connect();
             Thread.sleep(1000);
             client.setCallback(this);
-            client.subscribe("home/OpenMQTTGateway_ESP32_ALL/433toMQTT/#", 0);
+            client.subscribe("home/OpenMQTTGateway_ESP32_RF/433toMQTT/#", 0);
 //            client.subscribe("sonnen/#");
 //            client.subscribe("simago/test");
 //            client.subscribe("simago/veranda");
@@ -80,6 +81,7 @@ public class MQTTSwitch implements MqttCallback {
             client.publish("433/server", echo);
 
         } catch (MqttException e) {
+            log.error("connectToMQTT", e);
             e.printStackTrace();
         }
     }
@@ -87,23 +89,27 @@ public class MQTTSwitch implements MqttCallback {
     @Override
     public void connectionLost(Throwable cause) {
         connectionOK = false;
-        System.out.println("lost");
+        log.debug("connectionLost");
 
     }
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        if ("home/OpenMQTTGateway_ESP32_ALL/433toMQTT".equals(topic)) {
-            //System.out.println(topic + ", |||||" + message + "|||||| " + new Date());
+        //if ("home/OpenMQTTGateway_ESP32_ALL/433toMQTT".equals(topic)) {
+        //System.out.println(topic + ", |||||" + message + "|||||| " + new Date());
+
+        if ("home/OpenMQTTGateway_ESP32_RF/433toMQTT".equals(topic)) {
+
             try {
                 byte[] bb = message.getPayload();
                 String s = new String(bb);
                 int i = Integer.parseInt(s);
-                System.out.println("433: " + i);
+                //System.out.println("433: " + i);
                 String sd = "" + HoraTime.dateOnlyToStr(new Date(), "dd.MM.yyyy HH:mm:ss.SSS");
                 MqttMessage echo;
+                boolean gültig = true;
                 switch (i) {
-                    case 9803110:
+                    case 7235862://9803110:
                         echo = new MqttMessage(sd.getBytes());
                         client.publish("433/teich", echo);
                         break;
@@ -111,20 +117,37 @@ public class MQTTSwitch implements MqttCallback {
                         echo = new MqttMessage(sd.getBytes());
                         client.publish("433/briefkasten", echo);
                         break;
-                    case 14222350:
+
+//neu // Dümchen 01.08.2020
+//4053766  oben
+//9803110  unten                        
+                    case 4053766:
+                        //case 14222350:                        
                         echo = new MqttMessage(sd.getBytes());
                         client.publish("433/oben", echo);
+                        //System.out.println(new Date() + "    " + topic + ", " + message);
                         break;
-                    case 1115150:
+                    // case 1115150:
+                    case 9803110:
                         echo = new MqttMessage(sd.getBytes());
                         client.publish("433/unten", echo);
+                        //System.out.println(new Date() + "    " + topic + ", " + message);
+                        break;
+                    case 1115150:
+                    case 14222350:
+                        echo = new MqttMessage(sd.getBytes());
+                        client.publish("433/known/" + i, echo);
                         break;
 
                     default:
+                        gültig = false;
                         //legt die Zahl einfach an.
                         echo = new MqttMessage(sd.getBytes());
                         client.publish("433/unknown/" + i, echo);
 
+                }
+                if (gültig) {
+                    log.info("" + i);
                 }
 
                 // logHeizung.info("" + message);
@@ -152,7 +175,9 @@ public class MQTTSwitch implements MqttCallback {
     }
 
     private static void start(String[] args) {
-        System.out.print("Start MQTTSwitch.");
+        System.out.println();
+        System.out.println("Start MQTTSwitch.");
+        log.info("Start MQTTSwitch.");
 
         SwitchReadThread instance = new SwitchReadThread();
         instance.setName("switchReader");
@@ -167,6 +192,7 @@ public class MQTTSwitch implements MqttCallback {
             }
         }
         System.out.print("Beende MQTTSwitch....");
+        log.info("Stoppe MQTTSwitch...");
         instance.doStop();
         instance.interrupt();
 
@@ -196,6 +222,7 @@ public class MQTTSwitch implements MqttCallback {
                 Thread.sleep(5000);
             } catch (InterruptedException ex) {
                 java.util.logging.Logger.getLogger(MQTTSwitch.class.getName()).log(Level.SEVERE, null, ex);
+                log.info("interrupted");
             }
             //System.out.print("stop notwendig.");
             String[] s = new String[1];
@@ -204,3 +231,24 @@ public class MQTTSwitch implements MqttCallback {
         }
     }
 }
+
+/**
+ * 
+ * Laden aus ini
+ * + topic  quelle ziel  für RF433 zu lesbaren topics
+ * + Auswertung Richtungserkennung in Java und speichern in lesbare topics
+ * + direkte Auswertung in iobroker. Dort nur noch Zeitengrenzung für Alexa
+ * 
+ * 
+ * 2 sensoren werden zu richtung true false
+ * zeitstempel zur timeout erkennung
+ * tuning durch lernen???
+ * 
+ * + letzte Bewegung vor den Fewos per Sensor
+ * + Richtung der Bewegung aus Torsensor und Fewo Eingangstür Sensor gibt Status "zuHause"
+ *   Wenn nur Bewegung und kein EinAusgang ? timeout. anwesend. um
+ * 
+ * Anzeige 
+ * 
+ * 
+*/
